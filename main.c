@@ -55,7 +55,7 @@ void main(void)
 {
 	Reg_Start_up();
 	
-	uns8 d_line = 0;	//?
+	int d_line = 0;	//?
 	bit flag_first_launch = 1;
     uc led_blink = 0;
     uc led_blink_temp = 0;
@@ -69,12 +69,16 @@ void main(void)
     uc E_time = 0;
     bit E_part = 0;
     
+    for (temp = 0; temp < 5; temp ++)
+    	LED[temp] = temp + 1;
+    	
 	while (1)
 	{
 		clrwdt();
 		// PORT D --------------------------------------------------------------
 		temp = 0x08 << d_line; // 08
 		//temp |= Show_ERROR ();
+		temp |= 0x01;
 		PORTC = 255;
 		PORTD = temp;
 		
@@ -109,22 +113,9 @@ void main(void)
 			temp = Translate_num_to_LED[(int)temp];
 		}
 		
-		PORTC = temp ^ 0xFF;
+		PORTC = temp; // ^ 0xFF инверсия здесь не нужна
 		
 		for (temp = 0; temp < 20; temp ++) {};
-		
-		clrwdt();
-		
-		if(((d_line == led_active) && (led_blink & 0x04)))
-		{
-			for(temp = 0; temp < 5; temp ++)
-			{
-				LED[temp] = LED[temp] + 1;
-				if (LED[temp] > 10)
-					LED[temp] = 0;
-			}
-		}
-		
 		
 		d_line ++;
 		if (d_line > 4) // 4

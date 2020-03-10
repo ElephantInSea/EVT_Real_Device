@@ -7,7 +7,7 @@ void Reg_Start_up ()
 	// Turning on the "Work" and "Alarm" indicators
 	DDRD = 0;
 	PORTD = 0x02;
-	for (a = 0; a < 10; a ++) {};
+	for (a = 0; a < 100; a ++) {};
 	
 	
 	GLINTD = 1;		// Disable All Interrupts
@@ -19,16 +19,17 @@ void Reg_Start_up ()
 	DDRD  = 0x00;
 		
 	PIR1    = 0x00;	// Reset Interrupt Request Flags
-	PIE1    = 0x01;	// RCIE setting: USART receiver interrupt enable bit 
+	PIE1    = 0x00;	//01 RCIE setting: USART receiver interrupt enable bit 
 					// (there is data in the receiver buffer)
 	T0STA   = 0x28;	// Switching on TMR0 (internal clock frequency, 1:16 pre-selector)
 	// T0STA does not matter since interruptions not allowed
-	INTSTA  = 0x08;	// PEIE setting
+					// add if PA0/INT = 0  to interrupt
+	INTSTA  = 0x00;	//08 PEIE setting: interrupt off
 	
 	TXSTA = 0x42;	// 0b01000010 9bit, asynchronous,
 	RCSTA = 0xD0;	// 0b11010000 on port, 9bit, continuous reception
 	SPBRG = 0x9B;	// 155
-	USB_CTRL = 0x00;	// USB off
+	USB_CTRL = 0x01;	// USB off
 	
 	GLINTD  = 0; // Reset All Interrupt Disable Bit
 	
