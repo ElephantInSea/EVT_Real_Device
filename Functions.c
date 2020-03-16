@@ -11,8 +11,8 @@ void Reg_Start_up ()
 	
 	
 	GLINTD = 1;		// Disable All Interrupts
-	PORTE = 0xFF;	// Getting button codes and modes
-	DDRE  = 0xF8;
+	PORTE = 0x00;	// Getting button codes and modes
+	DDRE  = 0x00;
 	PORTC = 0x00;	// Numbers on the scoreboard cell
 	DDRC  = 0x00;
 	PORTD = 0x00;	// Power for indicator and button polling
@@ -54,7 +54,6 @@ void Reg_Start_up ()
     mode = 255;
 }
 
-
 void Btns_action (uc btn)
 {
 	uc temp = btn, count = 0;
@@ -68,31 +67,31 @@ void Btns_action (uc btn)
 	if (count != 1)
 		return;
 		
-	if (btn & 0x80)		// RE7: Left
+	if (btn & 0x10)		// RE7: Left 0x80
 	{
 		if (led_active == 4 - led_count)
 			led_active = 5;
 		led_active --;
 	}
-	else if (btn & 0x40)// RE6: Rihgt
+	else if (btn & 0x08)// RE6: Rihgt 0x40
 	{
 		led_active ++;
-		if (led_active > led_count)//4
-			led_active = 0;//4
+		if (led_active > 4)
+			led_active = 4 - led_count;
 	}
-	else if (btn & 0x20)// RE5: Up
+	else if (btn & 0x04)// RE5: Up 0x20
 	{
 		LED[led_active] = LED[led_active] + 1;
 		if (LED[led_active] > 9)
 			LED[led_active] = 0;
 	}
-	else if (btn & 0x10)// RE4: Down
+	else if (btn & 0x02)// RE4: Down 0x10
 	{
 		if (LED[led_active] == 0)
 			LED[led_active] = 10;
 		LED[led_active] = LED[led_active] - 1;
 	}
-	else if (btn & 0x08)// RE5: Send
+	else if (btn & 0x01)// RE5: Send 0x08
 	{
 		if(flag_send_mode == 0)
 		{
@@ -105,38 +104,4 @@ void Btns_action (uc btn)
 			flag_send_mode = flag_rw = 0;
 	}
 	return;
-}
-
-void Change_led_count (uc num)
-{
-	// Called in main - while - Mode part
-	if (num == 0)
-		led_count = 2;
-	else if (num == 1)
-		led_count = 4;
-	else if (num == 3)
-		led_count = 1;
-	else if (num > 7 && num < 10)	// 8, 9
-		led_count = 0;
-	else
-		led_count = 3;
-}
-
-// Translation of port E code from binary bit to more convenient, 10th
-uc Get_port_e_in_ten(uc part, uc data)
-{
-	// Called in main - while - Mode part
-	if (part == 1)
-		part = 0;
-	else
-		part = 5;
-	
-	uc i;
-	for(i = 0; i < 5; i ++)
-	{
-		if (data & (0x01))// << i
-			part += i;
-		data = data >> 1;
-	}
-	return part;
 }
