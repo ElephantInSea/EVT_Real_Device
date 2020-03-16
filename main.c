@@ -75,11 +75,13 @@ void main(void)
 	while (1)
 	{
 		clrwdt();
+		DDRE = 0xF1;
+		PORTE = 0xFF;
 		// PORT D --------------------------------------------------------------
 		temp = 0x08 << d_line; // 08
 		//temp |= Show_ERROR ();
-		temp |= 0x01;
-		PORTC = 255;
+		temp |= 0x01; // Led "Work" on
+		PORTC = 0;//255;
 		PORTD = temp;
 		
 		// -------------------------
@@ -113,9 +115,68 @@ void main(void)
 			temp = Translate_num_to_LED[(int)temp];
 		}
 		
-		PORTC = temp; // ^ 0xFF инверсия здесь не нужна
+		PORTC = temp; 
 		
 		for (temp = 0; temp < 20; temp ++) {};
+		
+		// PORT E --------------------------------------------------------------
+		
+		PORTC = 0;
+		
+		temp = PORTE;
+		temp = temp ^ 0xE0;
+		temp = temp >> 5;
+		
+		
+		if((d_line & 0x01) && (temp > 0))	// Mode
+		{
+			temp = Get_port_e_in_ten(d_line, temp);
+			
+			if (mode != temp)
+			{
+				if(mode_temp == temp)
+				{
+					mode_time ++;
+					if (mode_time > 20)
+					{
+						mode = temp;
+						// flag_send_mode = 1;
+						// flag_rw = 0; //Read
+						Change_led_count (mode);
+					}
+				}
+				else
+				{
+					mode = 255;		// Fuse
+					flag_send_mode = 0;
+					mode_temp = temp;
+					mode_time = 0;
+					led_active = 0;
+					LED[0] = LED[1] = LED[2] = LED[3] = LED[4] = 0;
+				}
+			}	
+		}
+		else if ((d_line & 0x01) == 0)	//Buttons
+		{
+			if (temp == buttons)
+			{
+				if (buttons_time <= 10)	// A pressed key will work
+					buttons_time ++;	// only once
+				if ((buttons_time == 10) && buttons > 0)
+					Btns_action (buttons);
+			}
+			else 
+			{
+				buttons_time = 0;
+				buttons = temp;
+			}
+		}
+		
+		PORTD = 0x00;//F8; 
+		DDRE = 0x00;
+		//PORTE = 0xF8;
+		
+		for (temp = 0; temp < 5; temp ++) {};
 		
 		d_line ++;
 		if (d_line > 4) // 4
