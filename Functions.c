@@ -56,6 +56,7 @@ void Reg_Start_up ()
 
 void Btns_action (uc btn)
 {
+	// Called in main - while - Button part
 	uc temp = btn, count = 0;
 	while(temp)
 	{
@@ -104,4 +105,38 @@ void Btns_action (uc btn)
 			flag_send_mode = flag_rw = 0;
 	}
 	return;
+}
+
+void Change_led_count (uc num)
+{
+	// Called in main - while - Mode part
+	if (num == 0)
+		led_count = 2;
+	else if (num == 1)
+		led_count = 4;
+	else if (num == 3)
+		led_count = 1;
+	else if (num > 3 && num < 6)	// 4, 5
+		led_count = 0;
+	else
+		led_count = 3;
+}
+
+// Translation of port E code from binary bit to more convenient, 10th
+uc Get_port_e_in_ten(uc part, uc data)
+{
+	// Called in main - while - Mode part
+	if (part == 1)
+		part = 0;
+	else	// part == 3
+		part = 5;
+	
+	uc i;
+	for(i = 0; i < 5; i ++)
+	{
+		if (data & (0x10))
+			part += i;
+		data = data << 1;
+	}
+	return part;
 }

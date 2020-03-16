@@ -71,7 +71,8 @@ void main(void)
     
     for (temp = 0; temp < 5; temp ++)
     	LED[temp] = temp + 1;
-    	
+    
+    
 	while (1)
 	{
 		clrwdt();
@@ -113,24 +114,54 @@ void main(void)
 			temp = Translate_num_to_LED[(int)temp];
 		}
 		
+		
 		PORTC = temp;
 		
 		for (temp = 0; temp < 20; temp ++) {};
 		
 		// PORT E --------------------------------------------------------------
 		
-		DDRE = 0xF8;	// 7-3 ¬ходы
+		DDRE = 0xF8;	// 7-3 Input
 		PORTE = 0xFF;
-		PORTC = 0xFF;
+		PORTC = 0xFF;	// That there would be no excess backlight
 		for (temp = 0; temp < 5; temp ++) {};
 		temp = PORTE;
 		DDRE = 0;
 		PORTE = 0;
 		
 		temp = temp ^ 0xF8;
-		temp = temp >> 3;
+		temp = (temp >> 3) & 0x1F;
 		
-		if ((d_line == 0) || (d_line == 2))	//Buttons
+		if((d_line & 0x01) && (temp > 0))	// Mode
+		{
+			temp = Get_port_e_in_ten(d_line, temp);
+			
+			if (mode != temp)
+			{
+				if(mode_temp == temp)
+				{
+					mode_time ++;
+					if (mode_time > 20)
+					{
+						mode = temp;
+						// flag_send_mode = 1;
+						// flag_rw = 0; //Read
+						Change_led_count (mode);
+					}
+				}
+				else
+				{
+					mode = 255;		// Fuse
+					flag_send_mode = 0;
+					mode_temp = temp;
+					mode_time = 0;
+					led_active = 4;
+					led_count = 0; 
+					LED[0] = LED[1] = LED[2] = LED[3] = LED[4] = 0;
+				}
+			}	
+		}
+		else if ((d_line & 0x01) == 0)	//Buttons
 		{
 			if (temp == buttons)
 			{
