@@ -48,11 +48,12 @@ void Reg_Start_up ()
     count_receive_data = 0;
     error_code = 0;
     error_code_interrupt = 0;
-	led_active = 4;	// The number of the selected indicator. 
+	led_active = 0;	// The number of the selected indicator. 
 					// 4 is the far left
     led_count = 3;
     mode = 255;
 }
+
 
 void Btns_action (uc btn)
 {
@@ -70,15 +71,15 @@ void Btns_action (uc btn)
 		
 	if (btn & 0x10)		// RE7: Left 0x80
 	{
-		if (led_active == 4 - led_count)
-			led_active = 5;
-		led_active --;
+		led_active ++;
+		if (led_active > led_count)
+			led_active = 0;
 	}
 	else if (btn & 0x08)// RE6: Rihgt 0x40
 	{
-		led_active ++;
-		if (led_active > 4)
-			led_active = 4 - led_count;
+		if (led_active == 0)
+			led_active = led_count + 1;
+		led_active --;
 	}
 	else if (btn & 0x04)// RE5: Up 0x20
 	{
@@ -127,9 +128,9 @@ uc Get_port_e_in_ten(uc part, uc data)
 {
 	// Called in main - while - Mode part
 	if (part == 1)
-		part = 0;
-	else	// part == 3
 		part = 5;
+	else	// part == 3
+		part = 0;
 	
 	uc i;
 	for(i = 0; i < 5; i ++)

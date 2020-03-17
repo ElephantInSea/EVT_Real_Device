@@ -60,24 +60,24 @@ void main(void)
     uc led_blink = 0;
     uc led_blink_temp = 0;
     uc led_blink_frq = 0x08;
-    uc mode = 0;
-	uc temp = 0;
+    uc temp = 0;
     
-    uc mode_temp = 0, mode_time = 0;
+    uc mode_temp = 255, mode_time = 0;
     uc buttons = 0, buttons_time = 0; 
     
     uc E_time = 0;
     bit E_part = 0;
     
     for (temp = 0; temp < 5; temp ++)
-    	LED[temp] = temp + 1;
-    
+    	LED[temp] = temp;
+    	
     
 	while (1)
 	{
 		clrwdt();
 		// PORT D --------------------------------------------------------------
-		temp = 0x08 << d_line; // 08
+		temp = 0x80;
+		temp = temp >> d_line; 
 		//temp |= Show_ERROR ();
 		temp |= 0x01;
 		PORTC = 0xFF;
@@ -105,7 +105,7 @@ void main(void)
 		if ((d_line == led_active) && (led_blink & led_blink_frq))
 			temp = 0xFF; 
 		// Turn off non-working indicators. Depends on the mode.
-		else if (d_line < (4 - led_count))
+		else if (d_line > led_count)
 			temp = 0xFF; 
 		else
 		{
@@ -122,14 +122,14 @@ void main(void)
 		// PORT E --------------------------------------------------------------
 		
 		DDRE = 0xF8;	// 7-3 Input
-		PORTE = 0xFF;
+		PORTE = 0xF8;
 		PORTC = 0xFF;	// That there would be no excess backlight
-		for (temp = 0; temp < 5; temp ++) {};
-		temp = PORTE;
+		for (temp = 0; temp < 10; temp ++) {};
+		temp = PORTE ^ 0xF8;
 		DDRE = 0;
 		PORTE = 0;
 		
-		temp = temp ^ 0xF8;
+		
 		temp = (temp >> 3) & 0x1F;
 		
 		if((d_line & 0x01) && (temp > 0))	// Mode
@@ -155,7 +155,7 @@ void main(void)
 					flag_send_mode = 0;
 					mode_temp = temp;
 					mode_time = 0;
-					led_active = 4;
+					led_active = 0;
 					led_count = 0; 
 					LED[0] = LED[1] = LED[2] = LED[3] = LED[4] = 0;
 				}
@@ -165,9 +165,9 @@ void main(void)
 		{
 			if (temp == buttons)
 			{
-				if (buttons_time <= 10)	// A pressed key will work
+				if (buttons_time <= 50)	// A pressed key will work
 					buttons_time ++;	// only once
-				if ((buttons_time == 10) && buttons > 0)
+				if ((buttons_time == 50) && buttons > 0)
 					Btns_action (buttons);
 			}
 			else 
@@ -177,9 +177,8 @@ void main(void)
 			}
 		}
 		
-		
 		d_line ++;
-		if (d_line > 4) // 4
+		if (d_line > 4)
 			d_line = 0;
 	}
 }
