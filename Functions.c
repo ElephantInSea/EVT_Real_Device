@@ -127,17 +127,26 @@ void Change_led_count (uc num)
 uc Get_port_e_in_ten(uc part, uc data)
 {
 	// Called in main - while - Mode part
+	uc count = 0;
+	uc i;
+	
 	if (part == 1)
 		part = 5;
 	else	// part == 3
 		part = 0;
 	
-	uc i;
 	for(i = 0; i < 5; i ++)
 	{
 		if (data & (0x10))
-			part += i;
+		{
+			part += i;	
+			count ++;
+		}
 		data = data << 1;
 	}
+	// Bug fix if 2 buttons are pressed adjacent to the mode
+	if (count > 1)
+		return mode;
+	
 	return part;
 }

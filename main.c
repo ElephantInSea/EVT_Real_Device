@@ -71,6 +71,7 @@ void main(void)
     for (temp = 0; temp < 5; temp ++)
     	LED[temp] = temp;
     	
+    uc marker = 0;
     
 	while (1)
 	{
@@ -114,6 +115,10 @@ void main(void)
 			temp = Translate_num_to_LED[(int)temp];
 		}
 		
+		uc ttt = 0x10;
+		ttt = ttt >> d_line; // invers
+		if (ttt & marker)
+			temp &= 0x7F;
 		
 		PORTC = temp;
 		
@@ -134,7 +139,9 @@ void main(void)
 		
 		if((d_line & 0x01) && (temp > 0))	// Mode
 		{
+			marker = temp;
 			temp = Get_port_e_in_ten(d_line, temp);
+			
 			
 			if (mode != temp)
 			{
@@ -156,7 +163,7 @@ void main(void)
 					mode_temp = temp;
 					mode_time = 0;
 					led_active = 0;
-					led_count = 0; 
+					led_count = 0;
 					LED[0] = LED[1] = LED[2] = LED[3] = LED[4] = 0;
 				}
 			}	
