@@ -79,8 +79,8 @@ void main(void)
 		// PORT D --------------------------------------------------------------
 		temp = 0x80;
 		temp = temp >> d_line; 
-		//temp |= Show_ERROR ();
-		temp |= 0x01;
+		temp |= Show_ERROR ();
+		//temp |= 0x01;
 		PORTC = 0xFF;
 		PORTD = temp;
 		
@@ -115,10 +115,16 @@ void main(void)
 			temp = Translate_num_to_LED[(int)temp];
 		}
 		
-		uc ttt = 0x10;
-		ttt = ttt >> d_line; // invers
-		if (ttt & marker)
+		uc ttt = 0x01;
+		ttt = ttt << d_line; // invers
+		if (ttt & error_code)
 			temp &= 0x7F;
+		/*
+		if (flag_manual_auto && d_line)		// 00001
+			temp &= 0x7F;
+		if (flag_send_mode && (d_line == 4))// 10000
+			temp &= 0x7F;
+		*/
 		
 		PORTC = temp;
 		
@@ -126,20 +132,25 @@ void main(void)
 		
 		// PORT E --------------------------------------------------------------
 		
-		DDRE = 0xF8;	// 7-3 Input
-		PORTE = 0xF8;
+		DDRE = 0xFC;	// 7-2 Input
+		PORTE = 0xFC;
 		PORTC = 0xFF;	// That there would be no excess backlight
 		for (temp = 0; temp < 10; temp ++) {};
-		temp = PORTE ^ 0xF8;
+		temp = PORTE ^ 0xFC;
 		DDRE = 0;
 		PORTE = 0;
+		
+		
+		if (temp & 0x04)			//0b00000100
+			flag_manual_auto = 0;	// invert
+		else
+			flag_manual_auto = 1;
 		
 		
 		temp = (temp >> 3) & 0x1F;
 		
 		if((d_line & 0x01) && (temp > 0))	// Mode
 		{
-			marker = temp;
 			temp = Get_port_e_in_ten(d_line, temp);
 			
 			
@@ -175,7 +186,11 @@ void main(void)
 				if (buttons_time <= 50)	// A pressed key will work
 					buttons_time ++;	// only once
 				if ((buttons_time == 50) && buttons > 0)
+				{
 					Btns_action (buttons);
+					led_blink = 0; 		// To see the change in the number 
+										// on the indicator
+				}
 			}
 			else 
 			{
@@ -187,6 +202,15 @@ void main(void)
 		d_line ++;
 		if (d_line > 4)
 			d_line = 0;
+			
+		// Send Part -----------------------------------------------------------
+		if ((flag_send_mode == 1) && (mode != 255))
+		{
+			Send_part(flag_first_launch);
+			if (flag_first_launch)
+				flag_first_launch = 0;
+		}
+		
 	}
 }
 #include "Functions.c"
