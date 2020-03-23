@@ -28,7 +28,8 @@ void Reg_Start_up ()
 	
 	TXSTA = 0x42;	// 0b01000010 9bit, asynchronous,
 	RCSTA = 0xD0;	// 0b11010000 on port, 9bit, continuous reception
-	SPBRG = 0x9B;	// 155
+	//SPBRG = 0x9B;	// 155
+	SPBRG = 0x41;	// 64
 	USB_CTRL = 0x01;	// USB off
 	
 	GLINTD  = 0; // Reset All Interrupt Disable Bit
@@ -376,10 +377,11 @@ void Send()
 	// Sending -----------------------------------------------------------------
 	int i = 0, max = 4;
 	temp = 0;
+	uc temp2 = 0;
 	//TXEN = 1;
 	//mark = 0;
 	
-	while ((i < max) && (temp < 150))
+	while ((i < max) && (temp < 250))
 	{
 		if (TXIF == 1)	// TXREG is empty
 		{
@@ -400,7 +402,12 @@ void Send()
 			temp = 0;
 		}
 		else
-			temp ++;	// fuze
+			temp2 ++;	// fuze
+			if (temp2 == 255)
+			{
+				temp2 = 0;
+				temp ++;
+			}
 	}
 	
 	// Check register TRMT to turn off the transmitter -------------------------
