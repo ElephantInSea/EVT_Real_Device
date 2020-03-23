@@ -17,7 +17,7 @@ void Reg_Start_up ()
 	DDRC  = 0x00;
 	PORTD = 0x00;	// Power for indicator and button polling
 	DDRD  = 0x00;
-		
+	
 	PIR1    = 0x00;	// Reset Interrupt Request Flags
 	PIE1    = 0x00;	//01 RCIE setting: USART receiver interrupt enable bit 
 					// (there is data in the receiver buffer)
@@ -82,7 +82,7 @@ void Btns_action (uc btn)
 			led_active = led_count + 1;
 		led_active --;
 	}
-	else if (!flag_send_mode)// Changing indicators is blocked when sending
+	else if (!flag_send_mode && (btn & 0x06))// Changing indicators is blocked when sending
 	{
 		if (btn & 0x04)// RE5: Up 0x20
 		{
@@ -103,11 +103,15 @@ void Btns_action (uc btn)
 		{
 			flag_send_mode = 1;
 			flag_rw = 1; //Write
+			
+			mark = 1;
 		}
 		else // STOP sending
 		{
 			flag_send_mode = flag_rw = 0;
-			CREN = 0;
+			//CREN = 0;
+			
+			mark = 0;
 		}
 	}
 	return;
@@ -295,8 +299,11 @@ void Read_Msg()
 
 void Send()
 {
+	
 	// Call from Send_part()
 	uc Package [4], temp = 0;
+	
+	mark = 2;
 	
 	clrwdt();
 	a = b = c = d = 0;
@@ -369,7 +376,8 @@ void Send()
 	// Sending -----------------------------------------------------------------
 	int i = 0, max = 4;
 	temp = 0;
-	TXEN = 1;
+	//TXEN = 1;
+	//mark = 0;
 	
 	while ((i < max) && (temp < 150))
 	{
@@ -389,6 +397,7 @@ void Send()
 			TXREG = Package[i];
 			TXEN = 1; // Transmitter Turn On
 			i++;
+			temp = 0;
 		}
 		else
 			temp ++;	// fuze
@@ -406,9 +415,11 @@ void Send()
 		temp ++;
 	}
 	
+	mark = i;
 	if (i != max) // Sent more or less
 	{
-		error_code = 1 + i;
+		error_code = 4;
+		//mark = 3;
 	}
 	//	error_code = 4; // Send Error
 	

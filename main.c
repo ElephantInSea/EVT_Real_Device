@@ -26,6 +26,8 @@ int led_active;
 uc led_count;
 uc mode;
 
+uc mark;
+
 interrupt iServer(void)
 {
     multi_interrupt_entry_and_save
@@ -72,6 +74,7 @@ void main(void)
     	LED[temp] = temp;
     	
     uc marker = 0;
+    mark = 0;
     
 	while (1)
 	{
@@ -117,7 +120,8 @@ void main(void)
 		
 		uc ttt = 0x01;
 		ttt = ttt << d_line; // invers
-		if (ttt & error_code)
+		//if (ttt & error_code)
+		if (ttt & mark)
 			temp &= 0x7F;
 		/*
 		if (flag_manual_auto && d_line)		// 00001
@@ -202,7 +206,8 @@ void main(void)
 		d_line ++;
 		if (d_line > 4)
 			d_line = 0;
-			
+		
+		
 		// Send Part -----------------------------------------------------------
 		if ((flag_send_mode == 1) && (mode != 255))
 		{
