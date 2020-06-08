@@ -18,16 +18,18 @@ void Reg_Start_up ()
 	PORTD = 0x00;	// Power for indicator and button polling
 	DDRD  = 0x00;
 	
-	PIR1    = 0x00;	// Reset Interrupt Request Flags
-	PIE1    = 0x00;	//01 RCIE setting: USART receiver interrupt enable bit 
+	PIR1    = 0x00;	// Reset Peripheral Interrupt Requests
+	PIE1    = 0x01;	//00 RCIE setting: USART receiver interrupt enable bit 
 					// (there is data in the receiver buffer)
 	T0STA   = 0x28;	// Switching on TMR0 (internal clock frequency, 1:16 pre-selector)
 	// T0STA does not matter since interruptions not allowed
 					// add if PA0/INT = 0  to interrupt
-	INTSTA  = 0x00;	//08 PEIE setting: interrupt off
+	//INTSTA  = 0x00;	//08 PEIE setting: interrupt off
+	INTSTA  = 0x08;	// PEIE setting: peripheral interruptions is on
 	
 	TXSTA = 0x42;	// 0b01000010 9bit, asynchronous,
-	RCSTA = 0xD0;	// 0b11010000 on port, 9bit, continuous reception
+	RCSTA = 0xD0;	// 0b11010000 on port, 9bit, continuous reception, 
+					// Receiver is off
 	//SPBRG = 0x9B;	// 155
 	SPBRG = 0x41;	// 64
 	USB_CTRL = 0x01;	// USB off
@@ -110,7 +112,7 @@ void Btns_action (uc btn)
 		else // STOP sending
 		{
 			flag_send_mode = flag_rw = 0;
-			//CREN = 0;
+			CREN = 0;	// Receiver is off
 			
 			mark = 0;
 		}
@@ -422,7 +424,7 @@ void Send()
 		temp ++;
 	}
 	
-	mark = i;
+	//mark = i + 3; // смещение 
 	if (i != max) // Sent more or less
 	{
 		error_code = 4;

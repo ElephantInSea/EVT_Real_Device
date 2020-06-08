@@ -28,12 +28,14 @@ uc mode;
 
 uc mark;
 
+#include "Interrupts.h"
 interrupt iServer(void)
 {
     multi_interrupt_entry_and_save
 
     PERIPHERAL_service:
-        PEIF = 0;
+		Handler_receiver ();
+        //PEIF = 0;
         interrupt_exit_and_restore
     TMR0_service:
     	// save on demand: PRODL,PRODH,TBLPTRH,TBLPTRL,FSR0,FSR1
@@ -49,6 +51,7 @@ interrupt iServer(void)
         INTF = 0;
         interrupt_exit_and_restore
 }
+#include "Interrupts.c"
 /******************/
 #include "math24.h"
 #include "Functions.h"
@@ -57,10 +60,11 @@ void main(void)
 {
 	Reg_Start_up();
 	
-	int d_line = 0;	
+	int d_line = 0;				// The variable determines which indicator 
+								// line should work.
 	bit flag_first_launch = 1;
-    uc led_blink = 0;
-    uc led_blink_temp = 0;
+    uc led_blink = 0;			// Flashing delay
+    uc led_blink_temp = 0;		// Flashing delay 2
     uc led_blink_frq = 0x08;
     uc temp = 0;
     
@@ -80,9 +84,10 @@ void main(void)
 	{
 		clrwdt();
 		// PORT D --------------------------------------------------------------
-		temp = 0x80;
-		temp = temp >> d_line; 
-		temp |= Show_ERROR ();
+		temp = 0x80;			// The first line is connected on the 7th bit
+		temp = temp >> d_line;	
+		temp |= Show_ERROR ();	// On 0 and 1 pins of port D, operation 
+								// indicators are connected
 		//temp |= 0x01;
 		PORTC = 0xFF;
 		PORTD = temp;
@@ -121,8 +126,24 @@ void main(void)
 		uc ttt = 0x01;
 		ttt = ttt << d_line; // invers
 		//if (ttt & error_code)
+		// Code for marking programs using dots. 
+		// Tags are placed throughout the code.
+		// In this edition notes hit in the function "Send"
+		
 		if (ttt & mark)
-			temp &= 0x7F;
+			temp &= 0x7F;	// Point on
+			
+		/*
+		mark = 
+		0 - Stop of transmission. Btns_action 
+		1 - Start of transmission. Btns_action 
+		2 - Start of transmission. Send
+		3-7 - The amount of data transmitted. Send
+		8 - Hit the interrupt handler code. Handler_receiver
+		9 - Start receiving 1 packet. Handler_receiver
+		10 - Parity error. Check_mail
+		11 - OERR or FERR. Check_mail
+		*/
 		/*
 		if (flag_manual_auto && d_line)		// 00001
 			temp &= 0x7F;
@@ -136,15 +157,16 @@ void main(void)
 		
 		// PORT E --------------------------------------------------------------
 		
-		DDRE = 0xFC;	// 7-2 Input
+		DDRE = 0xFC;	// [7:2] Input
 		PORTE = 0xFC;
 		PORTC = 0xFF;	// That there would be no excess backlight
 		for (temp = 0; temp < 10; temp ++) {};
-		temp = PORTE ^ 0xFC;
-		DDRE = 0;
-		PORTE = 0;
+		temp = PORTE ^ 0xFC;	// Reading
+		DDRE = 0;		// Port E output
+		PORTE = 0;		// zero on output 
 		
 		
+		// MANUAL / AUTO switch, defined by 1 bit
 		if (temp & 0x04)			//0b00000100
 			flag_manual_auto = 0;	// invert
 		else
@@ -166,6 +188,7 @@ void main(void)
 					if (mode_time > 20)
 					{
 						mode = temp;
+						// Sending read requests when changing mode
 						// flag_send_mode = 1;
 						// flag_rw = 0; //Read
 						Change_led_count (mode);
