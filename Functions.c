@@ -88,17 +88,9 @@ void Btns_action (uc btn)
 	else if (!flag_send_mode && (btn & 0x06))// Changing indicators is blocked when sending
 	{
 		if (btn & 0x04)// RE5: Up 0x20
-		{
-			LED[led_active] = LED[led_active] + 1;
-			if (LED[led_active] > 9)
-				LED[led_active] = 0;
-		}
+			Input_and_Correction(1);
 		else if (btn & 0x02)// RE4: Down 0x10
-		{
-			if (LED[led_active] == 0)
-				LED[led_active] = 10;
-			LED[led_active] = LED[led_active] - 1;
-		}
+			Input_and_Correction(0);
 	}
 	else if (btn & 0x01)// RE5: Send 0x08
 	{
@@ -120,18 +112,116 @@ void Btns_action (uc btn)
 	return;
 }
 
+
+void Input_and_Correction(uc up)
+{
+	//uc L[5] = {9, 9, 9, 9, 9}; // L - Limit
+	uc L[5];
+	L[0]=9;L[1]=9;L[2]=9;L[3]=9;L[4]=9;
+	uc bottom = 0;
+	uc step = 1;
+	
+	
+	// Preparation
+	if (mode == 0) // D == 19
+	{
+		L[1] = 1;
+		L[0] = 9;
+	}
+	else if (mode == 1)// BN == 99999
+	{ }
+	else if (mode == 2) // V = A1999
+	{
+		L[4] = 1;	// it's mean letter "A"
+		L[3] = 1;
+	}
+	else if (mode == 3)// OT == 99
+	{
+		if (led_active == 0)	 //0X
+		{
+			L[0] = 1;	// 0, 5, or 9
+			if (L[1] > 4 && L[1] < 9)
+				L[0] = 0;	// 50, 60, 70, 80
+		}
+		else if (led_active == 1)//X0
+		{
+			if (L[0] == 9)
+				return;	// 99
+				//bottom = 9;
+			else if (L[0] == 5)
+				L[1] = 4;	// 05, 15, 25, 35, 45
+		}
+	}
+	else if (mode > 7 && mode < 10) // 8, 9
+	{
+		L[0] = 1;
+	}
+	else // PO, PK, PG
+	{
+		// 0x000
+		L[3] = 4;
+		if (LED[2] > 0 || (LED[1] == 9 && LED[0] > 5))
+			L[3] = 3; 
+		else if(mode == 6) // PG
+			L[3] = 5;
+		// 00x0x
+		if (LED[3] > 3)	
+		{
+			L[2] = 0;
+			L[0] = 5;
+		}
+	}
+	
+	
+	// Addition or subtraction
+	if (up)// RE5: Up 0x20
+	{
+		LED[led_active] = LED[led_active] + step;
+		uc t = L[led_active];
+		if (LED[led_active] > t)
+			LED[led_active] = 0;
+	}
+	else // RE4: Down 0x10
+	{
+		if (LED[led_active] == 0)
+		{
+			uc t = L[led_active];
+			LED[led_active] = t + 1;
+		}
+		LED[led_active] = LED[led_active] - step;
+	}
+	
+	
+	// Correction
+	if (mode == 3 && led_active == 0)// OT == 99
+	{
+		if (LED[0] == 1) // jump up
+		{
+			if (LED[1] < 5)
+				LED[0] = 5;
+			else if (LED[1] == 9)
+				LED[0] = 9;
+		}
+		else			// jump down
+			LED[0] = 0;
+	}
+	else if (mode == 6 && led_active == 3) // PG
+		if (LED[3] == 5)		// jump up
+			LED[3] = 9;
+		else if (LED[3] == 8)	// jump down
+			LED[3] = 4;
+}
+
 void Change_led_count (uc num)
 {
 	// Called in main - while - Mode part
-	if (num == 0)
-		led_count = 2;
-	else if (num == 1)
-		led_count = 4;
-	else if (num == 3)
+	if (num == 0 || num == 3)// D, OT
 		led_count = 1;
+	else if (num == 1 || num == 2)	// BN, V
+		led_count = 4;
 	else if (num > 7 && num < 10)	// 8, 9
 		led_count = 0;
-	else
+	else				// PX, AX
 		led_count = 3;
 }
 
