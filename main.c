@@ -7,9 +7,9 @@ Tasks in this version: Light indicators*/
 
 typedef unsigned char uc;
 
-const uc Translate_num_to_LED[10] = {
-//  0,	  1,	2,	  3,	4,	  5,	6,	  7,	8,	  9.
-	0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8, 0x80, 0x90};
+const uc Translate_num_to_LED[11] = {
+//  0,	  1,	2,	  3,	4,	  5,	6,	  7,	8,	  9,	A.
+	0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8, 0x80, 0x90, 0x88};
 
 bit flag_manual_auto;
 bit flag_mode_ampl;
@@ -179,7 +179,6 @@ void main(void)
 		{
 			temp = Get_port_e_in_ten(d_line, temp);
 			
-			
 			if (mode != temp)
 			{
 				if(mode_temp == temp)
@@ -196,15 +195,22 @@ void main(void)
 				}
 				else
 				{
-					mode = 255;		// Fuse
-					flag_send_mode = 0;
-					mode_temp = temp;
-					mode_time = 0;
-					led_active = 0;
-					led_count = 0;
-					LED[0] = LED[1] = LED[2] = LED[3] = LED[4] = 0;
+					if ( mode_time < 50)
+						mode_time ++;	//Accidental fuse
+					else
+					{
+						mode = 255;		// Fuse
+						flag_send_mode = 0;
+						mode_temp = temp;
+						mode_time = 0;
+						led_active = 0;
+						led_count = 0;
+						LED[0] = LED[1] = LED[2] = LED[3] = LED[4] = 0;
+					}
 				}
-			}	
+			}
+			else if (mode_time)
+				mode_time = 0;	
 		}
 		else if ((d_line & 0x01) == 0)	//Buttons
 		{

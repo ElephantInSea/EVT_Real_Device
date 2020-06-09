@@ -116,8 +116,8 @@ void Btns_action (uc btn)
 void Input_and_Correction(uc up)
 {
 	//uc L[5] = {9, 9, 9, 9, 9}; // L - Limit
-	uc L[5];
-	L[0]=9;L[1]=9;L[2]=9;L[3]=9;L[4]=9;
+	uc Limit[5];
+	Limit[0]=9;Limit[1]=9;Limit[2]=9;Limit[3]=9;Limit[4]=9;
 	uc bottom = 0;
 	uc step = 1;
 	
@@ -125,50 +125,68 @@ void Input_and_Correction(uc up)
 	// Preparation
 	if (mode == 0) // D == 19
 	{
-		L[1] = 1;
-		L[0] = 9;
+		Limit[1] = 1;
+		Limit[0] = 9;
 	}
 	else if (mode == 1)// BN == 99999
 	{ }
 	else if (mode == 2) // V = A1999
 	{
-		L[4] = 1;	// it's mean letter "A"
-		L[3] = 1;
+		if (led_active == 4) // it's mean letter "A"
+		{
+			Limit[4] = 10;	
+			step = 10;
+		}
+		Limit[3] = 1;
 	}
 	else if (mode == 3)// OT == 99
 	{
-		if (led_active == 0)	 //0X
+		if (led_active == 0)	 // 0X
 		{
-			L[0] = 1;	// 0, 5, or 9
-			if (L[1] > 4 && L[1] < 9)
-				L[0] = 0;	// 50, 60, 70, 80
+			if (LED[0] == 1)	// Accidental fuse
+				LED[0] = 0;
+				
+			Limit[0] = 5;
+			step = 5;
+			if (LED[1] > 4 && LED[1] < 9)
+				//step = 0;	// 50, 60, 70 or 80
+				return;
+			else if (LED[1] == 9)	// 90 or 99
+			{
+				Limit[0] = 9;
+				step = 9;
+			}
 		}
 		else if (led_active == 1)//X0
 		{
-			if (L[0] == 9)
+			if (LED[0] == 9)
 				return;	// 99
 				//bottom = 9;
-			else if (L[0] == 5)
-				L[1] = 4;	// 05, 15, 25, 35, 45
+			else if (LED[0] == 5)
+				Limit[1] = 4;	// 05, 15, 25, 35 or 45
 		}
 	}
 	else if (mode > 7 && mode < 10) // 8, 9
 	{
-		L[0] = 1;
+		Limit[0] = 1;
 	}
 	else // PO, PK, PG
 	{
 		// 0x000
-		L[3] = 4;
+		Limit[3] = 4;
 		if (LED[2] > 0 || (LED[1] == 9 && LED[0] > 5))
-			L[3] = 3; 
-		else if(mode == 6) // PG
-			L[3] = 5;
+			Limit[3] = 3; 
+		else if(mode == 6 && led_active == 3) // PG
+		{
+			Limit[3] = 9;
+			if (LED[3] > 4 || (LED[3] == 4 && up == 1))
+				step = 5;
+		}
 		// 00x0x
 		if (LED[3] > 3)	
 		{
-			L[2] = 0;
-			L[0] = 5;
+			Limit[2] = 0;
+			Limit[0] = 5;
 		}
 	}
 	
@@ -177,7 +195,7 @@ void Input_and_Correction(uc up)
 	if (up)// RE5: Up 0x20
 	{
 		LED[led_active] = LED[led_active] + step;
-		uc t = L[led_active];
+		uc t = Limit[led_active];
 		if (LED[led_active] > t)
 			LED[led_active] = 0;
 	}
@@ -185,31 +203,11 @@ void Input_and_Correction(uc up)
 	{
 		if (LED[led_active] == 0)
 		{
-			uc t = L[led_active];
-			LED[led_active] = t + 1;
+			uc t = Limit[led_active];
+			LED[led_active] = t + step;
 		}
 		LED[led_active] = LED[led_active] - step;
 	}
-	
-	
-	// Correction
-	if (mode == 3 && led_active == 0)// OT == 99
-	{
-		if (LED[0] == 1) // jump up
-		{
-			if (LED[1] < 5)
-				LED[0] = 5;
-			else if (LED[1] == 9)
-				LED[0] = 9;
-		}
-		else			// jump down
-			LED[0] = 0;
-	}
-	else if (mode == 6 && led_active == 3) // PG
-		if (LED[3] == 5)		// jump up
-			LED[3] = 9;
-		else if (LED[3] == 8)	// jump down
-			LED[3] = 4;
 }
 
 void Change_led_count (uc num)
