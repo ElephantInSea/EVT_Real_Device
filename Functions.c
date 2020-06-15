@@ -97,13 +97,14 @@ void Btns_action (uc btn)
 		if(flag_send_mode == 0)
 		{
 			flag_send_mode = 1;
-			flag_rw = 1; //Write
+			flag_rw = 0; //Write
 			
 			mark = 1;
 		}
 		else // STOP sending
 		{
-			flag_send_mode = flag_rw = 0;
+			flag_send_mode = 0;
+			flag_rw = 1;
 			CREN = 0;	// Receiver is off
 			
 			mark = 0;
@@ -113,11 +114,59 @@ void Btns_action (uc btn)
 }
 
 
+void Change_led_count (uc num)
+{
+	// Called in main - while - Mode part
+	if (num == 0 || num == 3)// D, OT
+		led_count = 1;
+	else if (num == 1 || num == 2)	// BN, V
+		led_count = 4;
+	else if (num > 7 && num < 10)	// 8, 9
+		led_count = 0;
+	else				// PX, AX
+		led_count = 3;
+}
+
+// Translation of port E code from binary bit to more convenient, 10th
+uc Get_port_e_in_ten(uc part, uc data)
+{
+	// Called in main - while - Mode part
+	uc count = 0;
+	uc i;
+	
+	if (part == 1)
+		part = 5;
+	else	// part == 3
+		part = 0;
+	
+	for(i = 0; i < 5; i ++)
+	{
+		if (data & (0x10))
+		{
+			part += i;	
+			count ++;
+		}
+		data = data << 1;
+	}
+	// Bug fix if 2 buttons are pressed adjacent to the mode
+	if (count > 1)
+		return mode;
+	
+	// Correction for parcel codes
+	if( part > 5)		// 6, 7, 8 ==> 4, 5, 6
+		part -= 2;
+	else if (part > 3)	// 4, 5 ==> 8, 9
+		part += 4;
+		
+	return part;
+}
+
+
 void Input_and_Correction(uc up)
 {
 	//uc L[5] = {9, 9, 9, 9, 9}; // L - Limit
 	uc Limit[5];
-	Limit[0]=9;Limit[1]=9;Limit[2]=9;Limit[3]=9;Limit[4]=9;
+	Limit[0] = Limit[1] = Limit[2] = Limit[3] = Limit[4] = 9;
 	uc bottom = 0;
 	uc step = 1;
 	
@@ -182,11 +231,14 @@ void Input_and_Correction(uc up)
 			if (LED[3] > 4 || (LED[3] == 4 && up == 1))
 				step = 5;
 		}
+		if (led_active == 1 && LED[3] == 4 && LED[0] > 5)
+			Limit[1] = 8;
 		// 00x0x
 		if (LED[3] > 3)	
 		{
 			Limit[2] = 0;
-			Limit[0] = 5;
+			if (LED[1] == 9)
+				Limit[0] = 5;
 		}
 	}
 	
@@ -210,53 +262,6 @@ void Input_and_Correction(uc up)
 	}
 }
 
-void Change_led_count (uc num)
-{
-	// Called in main - while - Mode part
-	if (num == 0 || num == 3)// D, OT
-		led_count = 1;
-	else if (num == 1 || num == 2)	// BN, V
-		led_count = 4;
-	else if (num > 7 && num < 10)	// 8, 9
-		led_count = 0;
-	else				// PX, AX
-		led_count = 3;
-}
-
-// Translation of port E code from binary bit to more convenient, 10th
-uc Get_port_e_in_ten(uc part, uc data)
-{
-	// Called in main - while - Mode part
-	uc count = 0;
-	uc i;
-	
-	if (part == 1)
-		part = 5;
-	else	// part == 3
-		part = 0;
-	
-	for(i = 0; i < 5; i ++)
-	{
-		if (data & (0x10))
-		{
-			part += i;	
-			count ++;
-		}
-		data = data << 1;
-	}
-	// Bug fix if 2 buttons are pressed adjacent to the mode
-	if (count > 1)
-		return mode;
-	
-	// Correction for parcel codes
-	if( part > 5)		// 6, 7, 8 ==> 4, 5, 6
-		part -= 2;
-	else if (part > 3)	// 4, 5 ==> 8, 9
-		part += 4;
-		
-	return part;
-}
-
 
 // Messaging -------------------------------------------------------------------
 void Check_and_correct(uc num)
@@ -269,30 +274,38 @@ void Check_and_correct(uc num)
 		error_code = 5; // Wrong mode
 		return;
 	}	
-	else if (flag_rw == 0) // When reading, only the mode number is important
+	else if (flag_rw == 1) // When reading, only the mode number is important
 		return;
 		
 	int i = 0;
-	int24 led_max = 2047;
+	int24 led_max = 4095; // Most frequent, 6 out of 16 have these numbers
 	
-	if (num == 0)
-		led_max = 199;
-	else if (num == 1)
+	if (num == 0)		// Distance
+		led_max = 19;
+	else if (num == 1)	// Board number
 		return;
 		//led_max = 99999; // This is the maximum scoreboard
-	else if (num == 2)
+	else if (num == 2)	// Height: A1999 == 01999
 		led_max = 1999;
-	else if (num == 3)
+	else if (num == 3)	// Fuel remaining
 		led_max = 99;
-	else if (num > 7 && num < 10)	// 8, 9
+	else if (num > 7 && num < 10)	// (8, 9) Disaster, Chassis released
 		led_max = 1;	
-	// For 4-6 and 12-14 modes, the limit will remain 2047
+	else if (num == 6)
+		led_max = 9095;
+	// For 4-6 and 12-14 modes, the limit will remain 4095
 	
 	int24 led_real = 0;
 	int24 factor = 1;
 	int24 temp = 0;
 	
-	for (i = 0; i < 5; i ++)
+	int i_max = led_count + 1;
+	if (num == 2)			// Height
+		i_max = led_count;	// A1999 ==> 1999
+	
+	
+	// Translation of numbers from indicators into an integer
+	for (i = 0; i < i_max; i ++)
 	{
 		int j = 0, j_max = (int)LED[i];
 		temp = 0;
@@ -307,7 +320,7 @@ void Check_and_correct(uc num)
 	//If the limit is exceeded - the display will reset to the maximum value
 	if (led_real > led_max)
 	{
-		error_code = 6;
+		error_code = 6; // It will help to exit without giving an error signal
 		temp = 10000;
 		for (i = 4; i >= 0; i --)
 		{
@@ -338,7 +351,6 @@ void Read_Msg()
 	if (temp != mode)
 		error_code = 1; // Parity error
 	
-	
 	if (error_code == 0)
 	{
 		// Transfer of a parcel from Hex to Dec --------------------------------
@@ -348,21 +360,18 @@ void Read_Msg()
 		Rcv_numbers[2] = Rcv_numbers[3] = Rcv_numbers[4] = 0;
 		
 		// Package[1] - Package[3]
-		if (temp == 8 || temp == 9)
+		if (temp == 8 || temp == 9)	// Disaster, Chassis released
 			Rcv_numbers[0] = b & 0x01;
 		else 
 		{
 			Rcv_numbers[0] = d & 0x0F;
 			Rcv_numbers[1] = d >> 4;
-			if (temp != 3)	// !Fuel remaining == 00
+			if (temp != 1 && temp != 3)	// !Distance == !Fuel remaining == 00
 			{
 				Rcv_numbers[2] = c & 0x0F;
-				if (temp != 0) 	// !Distance == 000
-				{
-					Rcv_numbers[3] = c >> 4;
-					if (temp == 1)	// Board number == 00000
-						Rcv_numbers[4] = b & 0x0F;
-				}
+				Rcv_numbers[3] = c >> 4;
+				if (temp == 1 || temp == 3)	// Board number == Height == 00000
+					Rcv_numbers[4] = b & 0x0F;
 			}
 		}
 		
@@ -373,24 +382,21 @@ void Read_Msg()
 			{
 				uc temp2 = Rcv_numbers[temp];	// Bugs and features of 
 												// the compiler
-				if (flag_rw == 0)
+				if (flag_rw == 1)				// Reading case
 					LED[temp] = temp2;
-				else if (LED[temp] != temp2)
-					error_code = 1; // Parity error
+				else if (LED[temp] != temp2)	// Record case - compare
+					error_code = 1; 			// Parity error
 			}
 		}
-		// (error_code == 0) - Otherwise, the alarm signal will be 
-		// replaced by a parity error
-
+		
 		if (b & 0x40)	// Alarm signal, 12 mode
 			error_code = 3;
 	}
-	return ;//1;
+	return ;
 }
 
 void Send()
 {
-	
 	// Call from Send_part()
 	uc Package [4], temp = 0;
 	
@@ -408,7 +414,7 @@ void Send()
 	
 	// Amplitude mode ----------------------------------------------------------
 	// Turn on amplitude mode
-	if ((Package[0] > 3) && (Package[0] < 7))	// PO, PK, PG
+	if (Package[0] == 7)	// PG
 	{
 		if ((flag_mode_ampl == 0) && (LED[3] == 9))
 			flag_mode_ampl = 1;
@@ -424,13 +430,14 @@ void Send()
 		else
 		{
 			Package[0] += 8;// PO(0100) ==> AO(1100)
-			flag_rw = 0;
+			flag_rw = 1;	// Always read
 		}
 	}
 	
 	// The mode is greater than 13, or does 
 	// not fit into the limits for the mode
 	Check_and_correct(Package[0]);
+	
 	// Indicator values fixed
 	if (error_code == 6) 
 	{
@@ -440,11 +447,14 @@ void Send()
 	
 	
 	// Filling parcels ---------------------------------------------------------
-	if (flag_rw == 0) // Read
-		Package[1] = Package[2] = Package[3] = 0;
+	if (flag_rw == 1) // Read
+	{
+		Package[1] = 0x80; // Record message label
+		Package[2] = Package[3] = 0;
+	}
 	else //Write
 	{
-		if (Package[0] == 8 || Package[0] == 9)
+		if (Package[0] == 8 || Package[0] == 9)	// Disaster, Chassis released
 		{	
 			Package[1] = LED[0];
 			Package[2] = Package[3] = 0;
@@ -455,7 +465,6 @@ void Send()
 			Package[2] = (LED[3] << 4) | LED[2];
 			Package[3] = (LED[1] << 4) | LED[0];
 		}
-		Package[1] |= 0x80; // Record message label
 	}
 	
 	if (flag_manual_auto)
@@ -538,6 +547,9 @@ void Send_part(bit flag_first_launch)
 		i ++;
 	}
 	
+	// If you delete the variable flag_first_launch, then you can get into 
+	// the port polling error, without sending a message
+	
 	if (((i == 0) && (j == 1)) || (flag_first_launch == 1))
 	{
 		Send();
@@ -559,8 +571,8 @@ void Send_part(bit flag_first_launch)
 			if ((flag_mode_ampl == 0) && (error_code == 0))
 				flag_send_mode = 0;
 		}
-		else if (error_code != 4) // Send Error
-			error_code = 2; // Line is broken
+		else if (error_code != 4)	// Send Error
+			error_code = 2; 		// Line is broken
 	}
 }
 

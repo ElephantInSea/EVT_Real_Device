@@ -189,7 +189,7 @@ void main(void)
 						mode = temp;
 						// Sending read requests when changing mode
 						// flag_send_mode = 1;
-						// flag_rw = 0; //Read
+						// flag_rw = 1; //Read
 						Change_led_count (mode);
 					}
 				}
