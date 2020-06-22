@@ -11,7 +11,6 @@ uc Get_port_e_in_ten(uc part, uc data);
 
 
 // Messaging
-void Check_and_correct(uc num);
 void Send();
 void Send_part(bit flag_first_launch);
 uc Show_ERROR();

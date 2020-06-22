@@ -188,9 +188,15 @@ void main(void)
 					{
 						mode = temp;
 						// Sending read requests when changing mode
-						// flag_send_mode = 1;
-						// flag_rw = 1; //Read
+						// flag_send_mode = 1;		// Uncomment these lines to 
+						// flag_rw = 1; //Read		// enable sending requests 
+													// when switching mode
 						Change_led_count (mode);
+						
+						// If you disable these lines, then in the amplitude
+						// mode, sending will stop when the mode is switched
+						if (flag_mode_ampl == 1)
+							flag_send_mode = 1;
 					}
 				}
 				else

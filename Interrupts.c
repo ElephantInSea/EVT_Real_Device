@@ -16,9 +16,8 @@ void Check_mail (uc mail, bit nine, bit ferr)
 	// or framing, reset the reception and notify about it
 	if ((nine == 1) || (OERR || ferr))
 	{
-		mark = 10;
 		if (OERR || ferr)
-			mark = 11;
+			mark = 1;
 		error_code_interrupt = 1; // Parity error
 		CREN = 0;	// Receiver is off
 	}
@@ -32,13 +31,11 @@ void Handler_receiver ()
 	if(count_receive_data == 0)
 		error_code_interrupt = 0;
 	
-	mark = 8;
 	// RCIF == USART receiver interrupt request flag
 	while (RCIF)	
 	{
 		// RCIF = 0; // This is read only
 		
-		mark = 9;
 		// The framing error bit and parity bet must be read before reading data
 		bit mail_parity = RX9D;
 		bit ferr = FERR;
